@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: HomeScreen(title: 'Home'),
     );
   }
@@ -36,33 +39,50 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
   }
 
+  Future<List<Data>> getUser() async {
+    List<Data> userData = [];
+    final ApiCall httpService = ApiCall();
+    final response =
+        await httpService.getMethod("https://gorest.co.in/public-api/users");
+    if (response.toString().isNotEmpty) {
+      var data = json.decode(response.toString());
+      DetailModal modal = DetailModal.fromJson(data);
+      userData = modal.data!;
+      print(" Final $response");
+    }
+    return userData;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(" User "),
+        backgroundColor: Colors.white,
+        title: TextField(),
+        actions: [
+          IconButton(
+            onPressed: null,
+            icon: Icon(Icons.search),
+            color: Colors.black,
+          )
+        ],
       ),
-      body: _buildBody(context),
-    );
-  }
-
-  // build list view & manage states
-  FutureBuilder<List<Data>> _buildBody(BuildContext context) {
-    final ApiCall httpService = ApiCall();
-    return FutureBuilder<List<Data>>(
-      // future: httpService.getMethod(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          final List<Data>? users = snapshot.data;
-          print(users);
-          return _buildusers(context, users!);
-        } else {
-          return Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-      },
+      body: Container(
+        child: FutureBuilder<List<Data>>(
+          future: getUser(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container();
+            } else if (snapshot.hasError) {
+              return Container();
+            } else {
+              List<Data> userdata = snapshot.data!;
+              return _buildusers(context, userdata);
+            }
+          },
+        ),
+      ),
     );
   }
 
@@ -75,12 +95,20 @@ class _HomeScreenState extends State<HomeScreen> {
         print(users[index].name);
         return Card(
           elevation: 4,
-          child: ListTile(
-            title: Text(
-              "",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(users[index].name.toString()),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                users[index].name.toString(),
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(users[index].id.toString()),
+              Text(
+                users[index].email.toString(),
+              ),
+              Text(users[index].gender.toString()),
+              Text(users[index].status.toString()),
+            ],
           ),
         );
       },
